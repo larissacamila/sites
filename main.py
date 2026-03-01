@@ -180,12 +180,31 @@ def login():
         else:
             return "<h3>Senha incorreta!</h3>", 401
     return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login JOSE VALDO</title>
+    <style>
+    body{font-family:Arial;background:#f4f4f4;padding:15px;margin:0}
+    h2{text-align:center;color:#0D47A1}
+    form{max-width:400px;margin:0 auto;background:#fff;padding:20px;border-radius:6px;box-shadow:0 0 10px rgba(0,0,0,0.1)}
+    label{display:block;margin-top:10px;font-weight:bold}
+    input{width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box}
+    button{width:100%;padding:12px;margin-top:15px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;background:#FF9800;color:#fff}
+    button:hover{background:#FB8C00}
+    </style>
+    </head>
+    <body>
     <h2>Login JOSE VALDO</h2>
     <form method='post'>
         <label>Senha</label>
-        <input type='password' name='senha'>
+        <input type='password' name='senha' required>
         <button type='submit'>Entrar</button>
     </form>
+    </body>
+    </html>
     """
 
 # ======================
@@ -222,145 +241,29 @@ def index():
         pdf = gerar_pdf(dados, itens)
         return send_file(pdf, as_attachment=True)
 
-    # HTML INLINE
+    # HTML ADAPTADO PARA CELULAR
     HTML = """
     <!DOCTYPE html>
     <html>
     <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orçamento Elétrico</title>
     <style>
-    body{font-family:Arial;background:#f4f4f4;padding:20px}
-    form{background:#fff;padding:20px;border-radius:6px;box-shadow:0 0 10px rgba(0,0,0,0.1);}
-    label{display:block;margin-top:10px}
-    input,select{width:100%;padding:8px;margin-top:5px;border:1px solid #ccc;border-radius:4px}
-    button{width:100%;padding:12px;margin-top:15px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;transition:0.3s}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;background:#f4f4f4;padding:15px}
+    h2{text-align:center;color:#0D47A1;margin-bottom:20px}
+    form{background:#fff;padding:20px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);max-width:100%;overflow-x:auto}
+    label{display:block;margin-top:15px;font-weight:bold;color:#333}
+    input,select{width:100%;padding:12px;margin-top:5px;border:1px solid #ddd;border-radius:4px;font-size:16px}
+    button{width:100%;padding:14px;margin-top:20px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:16px;transition:background 0.3s}
     #addBtn{background:#0D47A1;color:#fff}
     #addBtn:hover{background:#1976D2}
-    #pdfBtn{background:#FF9800;color:#fff}
+    #pdfBtn{background:#FF9800;color:#fff;margin-top:25px}
     #pdfBtn:hover{background:#FB8C00}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{border:1px solid #ccc;padding:6px;text-align:center}
-    </style>
-    </head>
-    <body>
+    table{width:100%;border-collapse:collapse;margin-top:20px;min-width:400px}
+    th,td{border:1px solid #ddd;padding:10px;text-align:left}
+    th{background:#f8f8f8;color:#0D47A1}
+    hr{margin:25px 0;border:none
 
-    <h2>⚡ Orçamento JVSN-VALDO</h2>
-
-    <form method="POST">
-
-    <label>Cliente</label>
-    <input name="cliente" required>
-
-    <label>Telefone</label>
-    <input name="telefone">
-
-    <label>Tipo</label>
-    <select name="tipo">
-    <option>Residencial</option>
-    <option>Predial</option>
-    </select>
-
-    <hr>
-
-    <label>Serviço padrão</label>
-    <select id="padrao" onchange="autoFill()">
-    <option value="">Selecione</option>
-    {% for s,v in servicos.items() %}
-    <option value="{{s}}|{{v}}">{{s}} - R$ {{v}}</option>
-    {% endfor %}
-    </select>
-
-    <label>Descrição</label>
-    <input id="desc">
-
-    <label>Qtd</label>
-    <input id="qtd" type="number" value="1">
-
-    <label>Valor</label>
-    <input id="val" type="number" value="0">
-
-    <button type="button" id="addBtn" onclick="add()">➕ Adicionar Serviço</button>
-
-    <table id="tab">
-    <tr><th>Serviço</th><th>Qtd</th><th>Valor</th><th>Total</th></tr>
-    </table>
-
-    <input type="hidden" name="itens" id="itens">
-
-    <hr>
-
-    <label>Subtotal</label>
-    <input id="subtotal" name="subtotal" readonly>
-
-    <label>Desconto</label>
-    <input id="desconto" name="desconto" value="0" oninput="calc()">
-
-    <label>Total</label>
-    <input id="total" name="total" readonly>
-
-    <label>Pagamento</label>
-    <select name="pagamento">
-    <option>Pix(11921733556)</option>
-    <option>Cartão de Crédito</option>
-    <option>Cartão de Débito</option>
-    <option>Dinheiro</option>
-    </select>
-
-    <button type="submit" id="pdfBtn">💾 Gerar PDF</button>
-
-    </form>
-
-    <script>
-    let itens=[], subtotal=0;
-
-    function autoFill(){
-     let v=document.getElementById("padrao").value;
-     if(!v)return;
-     let p=v.split("|");
-     desc.value=p[0]; val.value=p[1];
-    }
-
-    function add(){
-     let d=desc.value, q=Number(qtd.value), v=Number(val.value);
-     if(!d||q<=0||v<=0)return;
-     let t=q*v; subtotal+=t;
-     itens.push({descricao:d,qtd:q,valor:v,total:t});
-
-     let r=tab.insertRow();
-     r.insertCell(0).innerText=d;
-     r.insertCell(1).innerText=q;
-     r.insertCell(2).innerText=v.toFixed(2);
-     r.insertCell(3).innerText=t.toFixed(2);
-
-     subtotalEl(); desc.value=""; val.value=0; qtd.value=1;
-    }
-
-    function subtotalEl(){
-     subtotal.value=subtotal.toFixed(2);
-     calc();
-     itensField();
-    }
-
-    function calc(){
-     total.value=(subtotal - Number(desconto.value || 0)).toFixed(2);
-    }
-
-    function itensField(){
-     document.getElementById("itens").value=JSON.stringify(itens);
-    }
-    </script>
-
-    </body>
-    </html>
-    """
-    return render_template_string(HTML, servicos=SERVICOS_PADRAO)
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-
-
-
-#if __name__ == "__main__":
-    #app.run(debug=True)
 
