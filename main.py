@@ -298,10 +298,10 @@ def index():
 
     <label>Total</label>
     <input id="total" name="total" readonly>
-
+    
     <label>Pagamento</label>
-    <select name="pagamento">
-    <option>Pix(11921733556)</option>
+    <select name="pagamento" multiple size="4">
+    <option>Pix (11921733556)</option>
     <option>Cartão de Crédito</option>
     <option>Cartão de Débito</option>
     <option>Dinheiro</option>
@@ -363,3 +363,4 @@ if __name__ == "__main__":
 
 #if __name__ == "__main__":
     #app.run(debug=True)
+
