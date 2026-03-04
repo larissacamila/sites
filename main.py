@@ -11,17 +11,18 @@ app.secret_key = "uma_chave_secreta_qualquer"
 SENHA = "josevaldo123"
 
 SERVICOS_PADRAO = {
-    "INSTALAÇÃO DE IDR (INTERRUPTOR DIFERENCIAL RESIDUAL)": 150.50,
-    "INSTALAÇÃO DE DPS - DISPOSITIVO DE PROTEÇÃO CONTRA SURTOS": 129.50,
+    "INSTALAÇÃO DE IDR": 150.50,
+    "INSTALAÇÃO DE DPS": 129.50,
     "INSTALAÇÃO DE HASTE ATERRAMENTO": 210.50,
     "INSTALAÇÃO CARREGADOR VEICULAR": 1881.50,
-    "INSTALAÇÃO DE AR SPLIT 12000 BTUS": 581.00,
+    "INSTALAÇÃO AR SPLIT 12000 BTUS": 581.00
 }
 
-def to_float(v):
+def f(v):
     try: return float(v)
     except: return 0.0
 
+# ================= PDF =================
 def gerar_pdf(d, itens):
     nome = f"orcamento_{uuid.uuid4().hex}.pdf"
     c = canvas.Canvas(nome, pagesize=A4)
@@ -35,14 +36,14 @@ def gerar_pdf(d, itens):
 
     c.setFont("Helvetica-Bold", 18)
     c.setFillColor(AZUL)
-    c.drawString(180, 800, "ORÇAMENTO JVSN-VALDO")
+    c.drawString(170, 800, "ORÇAMENTO JVSN-VALDO")
 
     c.setFont("Helvetica", 10)
-    c.drawString(180, 780, "Email: valdo.soares@jvsn.com.br")
+    c.drawString(170, 782, "Email: valdo.soares@jvsn.com.br")
 
     c.setStrokeColor(LARANJA)
     c.setLineWidth(2)
-    c.line(40, 760, 550, 760)
+    c.line(40, 765, 550, 765)
 
     c.setFont("Helvetica", 11)
     c.setFillColor(CINZA)
@@ -67,13 +68,24 @@ def gerar_pdf(d, itens):
         c.drawString(450, y, f"R$ {i['total']:.2f}")
         y -= 18
 
-    y -= 20
-    c.setFont("Helvetica-Bold", 12)
+    y -= 15
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(360, y, "Subtotal:")
+    c.drawString(450, y, f"R$ {d['subtotal']:.2f}")
+
+    y -= 18
+    c.drawString(360, y, "Desconto:")
+    c.drawString(450, y, f"R$ {d['desconto']:.2f}")
+
+    y -= 22
+    c.setFont("Helvetica-Bold", 13)
+    c.setFillColor(LARANJA)
     c.drawString(360, y, "TOTAL:")
     c.drawString(450, y, f"R$ {d['total']:.2f}")
 
     y -= 40
     c.setFont("Helvetica", 11)
+    c.setFillColor(CINZA)
     c.drawString(40, y, "Formas de Pagamento:")
     y -= 15
     for p in d["pagamentos"]:
@@ -87,38 +99,48 @@ def gerar_pdf(d, itens):
     c.save()
     return nome
 
+# ================= LOGIN =================
 @app.route("/login", methods=["GET","POST"])
 def login():
-    if request.method=="POST" and request.form.get("senha")==SENHA:
-        session["logado"]=True
+    if request.method == "POST" and request.form.get("senha") == SENHA:
+        session["logado"] = True
         return redirect("/")
-    return """<form method='post'><input type='password' name='senha'><button>Entrar</button></form>"""
+    return "<form method='post'><input type='password' name='senha'><button>Entrar</button></form>"
 
+# ================= APP =================
 @app.route("/", methods=["GET","POST"])
 def index():
-    if not session.get("logado"): return redirect("/login")
+    if not session.get("logado"):
+        return redirect("/login")
 
-    if request.method=="POST":
-        itens=json.loads(request.form["itens"])
-        d={
-            "cliente":request.form["cliente"],
-            "telefone":request.form["telefone"],
-            "email_cliente":request.form.get("email_cliente",""),
-            "total":to_float(request.form["total"]),
-            "pagamentos":request.form.getlist("pagamento"),
-            "data":date.today().strftime("%d/%m/%Y")
+    if request.method == "POST":
+        itens = json.loads(request.form["itens"])
+        d = {
+            "cliente": request.form["cliente"],
+            "telefone": request.form["telefone"],
+            "email_cliente": request.form.get("email_cliente",""),
+            "subtotal": f(request.form["subtotal"]),
+            "desconto": f(request.form["desconto"]),
+            "total": f(request.form["total"]),
+            "pagamentos": request.form.getlist("pagamento"),
+            "data": date.today().strftime("%d/%m/%Y")
         }
-        return send_file(gerar_pdf(d,itens), as_attachment=True)
+        return send_file(gerar_pdf(d, itens), as_attachment=True)
 
-    HTML = """
+    return render_template_string("""
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
 <style>
 body{font-family:Arial;background:#f4f4f4;padding:15px}
 form{background:#fff;padding:15px;border-radius:6px}
 input,select{width:100%;padding:8px;margin:6px 0}
-button{padding:12px;width:100%;margin-top:10px}
-</style></head>
+button{width:100%;padding:12px;margin-top:10px}
+table{width:100%;margin-top:10px}
+</style>
+</head>
 <body>
 
 <h2>⚡ Orçamento JVSN-VALDO</h2>
@@ -128,9 +150,8 @@ button{padding:12px;width:100%;margin-top:10px}
 <input name="telefone" placeholder="Telefone">
 <input name="email_cliente" placeholder="Email do cliente (opcional)">
 
-<label>Serviço</label>
 <select id="padrao" onchange="autoFill()">
-<option value="">Selecione</option>
+<option value="">Serviço padrão</option>
 {% for s,v in servicos.items() %}
 <option value="{{s}}|{{v}}">{{s}}</option>
 {% endfor %}
@@ -140,45 +161,56 @@ button{padding:12px;width:100%;margin-top:10px}
 <input id="qtd" type="number" value="1">
 <input id="val" type="number" value="0">
 
-<button type="button" onclick="add()">Adicionar</button>
+<button type="button" onclick="add()">Adicionar Serviço</button>
 
 <table id="tab"></table>
-<input type="hidden" name="itens" id="itens">
+<input type="hidden" name="itens" id="itensInput">
 
+<input id="subtotal" name="subtotal" readonly>
+<input id="desconto" name="desconto" value="0" oninput="calc()">
 <input id="total" name="total" readonly>
 
 <label>Pagamento</label>
 <label><input type="checkbox" name="pagamento" value="Pix"> Pix</label><br>
-<label><input type="checkbox" name="pagamento" value="Cartão Crédito"> Crédito</label><br>
-<label><input type="checkbox" name="pagamento" value="Cartão Débito"> Débito</label><br>
+<label><input type="checkbox" name="pagamento" value="Crédito"> Crédito</label><br>
+<label><input type="checkbox" name="pagamento" value="Débito"> Débito</label><br>
 <label><input type="checkbox" name="pagamento" value="Dinheiro"> Dinheiro</label>
 
 <button>Gerar PDF</button>
 </form>
 
 <script>
-let itens=[], total=0;
+let itens=[], subtotal=0;
+
 function autoFill(){
+ if(!padrao.value) return;
  let p=padrao.value.split("|");
  desc.value=p[0]; val.value=p[1];
 }
+
 function add(){
- let q=+qtd.value,v=+val.value,t=q*v;
+ let q=+qtd.value, v=+val.value;
+ if(!desc.value||q<=0||v<=0) return;
+ let t=q*v;
  itens.push({descricao:desc.value,qtd:q,valor:v,total:t});
- total+=t; totalEl();
- let r=tab.insertRow(); r.insertCell(0).innerText=desc.value;
+ subtotal+=t;
+ let r=tab.insertRow();
+ r.insertCell(0).innerText=desc.value;
+ r.insertCell(1).innerText=q;
+ r.insertCell(2).innerText=v.toFixed(2);
+ r.insertCell(3).innerText=t.toFixed(2);
+ calc();
 }
-function totalEl(){
- total.value=total.toFixed(2);
- itensField();
-}
-function itensField(){
+
+function calc(){
+ subtotalInput.value=subtotal.toFixed(2);
+ totalInput.value=(subtotal-(+desconto.value||0)).toFixed(2);
  itensInput.value=JSON.stringify(itens);
 }
 </script>
 
-</body></html>
-"""
-    return render_template_string(HTML, servicos=SERVICOS_PADRAO)
+</body>
+</html>
+""", servicos=SERVICOS_PADRAO)
 
 app.run(host="0.0.0.0", port=10000)
