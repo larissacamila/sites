@@ -82,10 +82,106 @@ def gerar_pdf(d, itens):
 # ================= LOGIN =================
 @app.route("/login", methods=["GET","POST"])
 def login():
-    if request.method == "POST" and request.form.get("senha") == SENHA:
-        session["logado"] = True
-        return redirect("/")
-    return "<form method='post'><input type='password' name='senha'><button>Entrar</button></form>"
+    if request.method == "POST":
+        if request.form.get("senha") == SENHA:
+            session["logado"] = True
+            return redirect("/")
+    return """
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login | JVSN-VALDO</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+  min-height:100vh;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+}
+
+.login-box{
+  width:100%;
+  max-width:360px;
+  background:#fff;
+  border-radius:10px;
+  padding:25px 20px;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
+  text-align:center;
+}
+
+.logo{
+  font-size:26px;
+  font-weight:bold;
+  color:#203a43;
+  margin-bottom:5px;
+}
+
+.sub{
+  font-size:14px;
+  color:#555;
+  margin-bottom:20px;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  margin-bottom:15px;
+  font-size:16px;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  background:#2c5364;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  font-size:16px;
+  font-weight:bold;
+}
+
+button:active{
+  transform:scale(.98);
+}
+
+.footer{
+  margin-top:15px;
+  font-size:12px;
+  color:#777;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-box">
+  <div class="logo">⚡ JVSN-VALDO</div>
+  <div class="sub">Orçamentos Elétricos</div>
+
+  <form method="post">
+    <input type="password" name="senha" placeholder="Digite a senha" required>
+    <button type="submit">Entrar</button>
+  </form>
+
+  <div class="footer">
+    Uso interno • Acesso restrito
+  </div>
+</div>
+
+</body>
+</html>    
 
 # ================= APP =================
 @app.route("/", methods=["GET","POST"])
@@ -201,3 +297,4 @@ function calc(){
 """, servicos=SERVICOS_PADRAO)
 
 app.run(host="0.0.0.0", port=10000)
+
