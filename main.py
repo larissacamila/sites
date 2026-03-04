@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, send_file, session, redirect, url_for
+from flask import Flask, render_template_string, request, send_file, session, redirect
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import HexColor
@@ -27,26 +27,15 @@ def gerar_pdf(d, itens):
     nome = f"orcamento_{uuid.uuid4().hex}.pdf"
     c = canvas.Canvas(nome, pagesize=A4)
 
-    AZUL = HexColor("#0D47A1")
-    LARANJA = HexColor("#FF9800")
-    CINZA = HexColor("#444")
-
     if os.path.exists("static/logo.jpeg"):
         c.drawImage("static/logo.jpeg", 40, 780, 120, 50)
 
     c.setFont("Helvetica-Bold", 18)
-    c.setFillColor(AZUL)
     c.drawString(170, 800, "ORÇAMENTO JVSN-VALDO")
-
     c.setFont("Helvetica", 10)
     c.drawString(170, 782, "Email: valdo.soares@jvsn.com.br")
 
-    c.setStrokeColor(LARANJA)
-    c.setLineWidth(2)
-    c.line(40, 765, 550, 765)
-
     c.setFont("Helvetica", 11)
-    c.setFillColor(CINZA)
     c.drawString(40, 735, f"Cliente: {d['cliente']}")
     c.drawString(40, 718, f"Telefone: {d['telefone']}")
     c.drawString(40, 701, f"Email Cliente: {d['email_cliente']}")
@@ -69,32 +58,23 @@ def gerar_pdf(d, itens):
         y -= 18
 
     y -= 15
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(360, y, "Subtotal:")
-    c.drawString(450, y, f"R$ {d['subtotal']:.2f}")
-
-    y -= 18
-    c.drawString(360, y, "Desconto:")
-    c.drawString(450, y, f"R$ {d['desconto']:.2f}")
-
-    y -= 22
+    c.drawString(360, y, f"Subtotal: R$ {d['subtotal']:.2f}")
+    y -= 15
+    c.drawString(360, y, f"Desconto: R$ {d['desconto']:.2f}")
+    y -= 20
     c.setFont("Helvetica-Bold", 13)
-    c.setFillColor(LARANJA)
-    c.drawString(360, y, "TOTAL:")
-    c.drawString(450, y, f"R$ {d['total']:.2f}")
+    c.drawString(360, y, f"TOTAL: R$ {d['total']:.2f}")
 
-    y -= 40
+    y -= 35
     c.setFont("Helvetica", 11)
-    c.setFillColor(CINZA)
     c.drawString(40, y, "Formas de Pagamento:")
     y -= 15
     for p in d["pagamentos"]:
         c.drawString(60, y, f"- {p}")
         y -= 14
 
-    y -= 40
-    c.line(40, y, 250, y)
-    c.drawString(40, y-15, "Assinatura do Cliente")
+    c.line(40, 120, 250, 120)
+    c.drawString(40, 105, "Assinatura do Cliente")
 
     c.save()
     return nome
@@ -114,17 +94,23 @@ def index():
         return redirect("/login")
 
     if request.method == "POST":
-        itens = json.loads(request.form["itens"])
+        itens_raw = request.form.get("itens","[]")
+        try:
+            itens = json.loads(itens_raw)
+        except:
+            itens = []
+
         d = {
-            "cliente": request.form["cliente"],
-            "telefone": request.form["telefone"],
+            "cliente": request.form.get("cliente",""),
+            "telefone": request.form.get("telefone",""),
             "email_cliente": request.form.get("email_cliente",""),
-            "subtotal": f(request.form["subtotal"]),
-            "desconto": f(request.form["desconto"]),
-            "total": f(request.form["total"]),
+            "subtotal": f(request.form.get("subtotal")),
+            "desconto": f(request.form.get("desconto")),
+            "total": f(request.form.get("total")),
             "pagamentos": request.form.getlist("pagamento"),
             "data": date.today().strftime("%d/%m/%Y")
         }
+
         return send_file(gerar_pdf(d, itens), as_attachment=True)
 
     return render_template_string("""
@@ -148,7 +134,7 @@ table{width:100%;margin-top:10px}
 <form method="post">
 <input name="cliente" placeholder="Cliente" required>
 <input name="telefone" placeholder="Telefone">
-<input name="email_cliente" placeholder="Email do cliente (opcional)">
+<input name="email_cliente" placeholder="Email do cliente">
 
 <select id="padrao" onchange="autoFill()">
 <option value="">Serviço padrão</option>
@@ -164,16 +150,15 @@ table{width:100%;margin-top:10px}
 <button type="button" onclick="add()">Adicionar Serviço</button>
 
 <table id="tab"></table>
-<input type="hidden" name="itens" id="itensInput">
 
+<input type="hidden" name="itens" id="itens">
 <input id="subtotal" name="subtotal" readonly>
 <input id="desconto" name="desconto" value="0" oninput="calc()">
 <input id="total" name="total" readonly>
 
-<label>Pagamento</label>
-<label><input type="checkbox" name="pagamento" value="Pix"> Pix</label><br>
-<label><input type="checkbox" name="pagamento" value="Crédito"> Crédito</label><br>
-<label><input type="checkbox" name="pagamento" value="Débito"> Débito</label><br>
+<label><input type="checkbox" name="pagamento" value="Pix"> Pix</label>
+<label><input type="checkbox" name="pagamento" value="Crédito"> Crédito</label>
+<label><input type="checkbox" name="pagamento" value="Débito"> Débito</label>
 <label><input type="checkbox" name="pagamento" value="Dinheiro"> Dinheiro</label>
 
 <button>Gerar PDF</button>
@@ -203,9 +188,11 @@ function add(){
 }
 
 function calc(){
+ subtotalInput = document.getElementById("subtotal");
+ totalInput = document.getElementById("total");
  subtotalInput.value=subtotal.toFixed(2);
  totalInput.value=(subtotal-(+desconto.value||0)).toFixed(2);
- itensInput.value=JSON.stringify(itens);
+ document.getElementById("itens").value=JSON.stringify(itens);
 }
 </script>
 
