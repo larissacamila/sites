@@ -182,7 +182,7 @@ button:active{
 
 </body>
 </html>    
-
+"""
 # ================= APP =================
 @app.route("/", methods=["GET","POST"])
 def index():
@@ -297,4 +297,5 @@ function calc(){
 """, servicos=SERVICOS_PADRAO)
 
 app.run(host="0.0.0.0", port=10000)
+
 
