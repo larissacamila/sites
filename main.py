@@ -2,7 +2,8 @@ from flask import Flask, render_template_string, request, send_file, session, re
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from datetime import date
-import os, uuid, json
+from io import BytesIO
+import os, json
 
 app = Flask(__name__)
 app.secret_key = "uma_chave_secreta_qualquer"
@@ -23,8 +24,8 @@ def f(v):
 
 # ================= PDF =================
 def gerar_pdf(d, itens):
-    nome = f"orcamento_{uuid.uuid4().hex}.pdf"
-    c = canvas.Canvas(nome, pagesize=A4)
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
 
     if os.path.exists("static/logo.jpeg"):
         c.drawImage("static/logo.jpeg", 40, 780, 120, 50)
@@ -66,19 +67,9 @@ def gerar_pdf(d, itens):
     c.setFont("Helvetica-Bold", 13)
     c.drawString(360, y, f"TOTAL: R$ {d['total']:.2f}")
 
-    y -= 35
-    c.setFont("Helvetica", 11)
-    c.drawString(40, y, "Formas de Pagamento:")
-    y -= 15
-    for p in d["pagamentos"]:
-        c.drawString(60, y, f"- {p}")
-        y -= 14
-
-    c.line(40, 120, 250, 120)
-    c.drawString(40, 105, "Assinatura do Cliente")
-
     c.save()
-    return nome
+    buffer.seek(0)
+    return buffer
 
 # ================= LOGIN =================
 @app.route("/login", methods=["GET","POST"])
@@ -90,7 +81,7 @@ def login():
     return '''
     <h2>Login</h2>
     <form method="post">
-    <input type="password" name="senha">
+    <input type="password" name="senha" placeholder="Senha">
     <button>Entrar</button>
     </form>
     '''
@@ -115,27 +106,76 @@ def index():
             "data": date.today().strftime("%d/%m/%Y")
         }
 
-        return send_file(gerar_pdf(d, itens), as_attachment=True)
+        return send_file(
+            gerar_pdf(d, itens),
+            as_attachment=True,
+            download_name="orcamento.pdf",
+            mimetype="application/pdf"
+        )
 
     return render_template_string("""
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body{font-family:Arial;background:#f4f4f4;padding:15px}
-form{background:#fff;padding:15px;border-radius:6px}
-input,select{width:100%;padding:8px;margin:6px 0}
-button{width:100%;padding:10px;margin-top:5px}
-table{width:100%;margin-top:10px}
-td{padding:5px}
+body{
+  font-family:Arial;
+  background:#0f172a;
+  padding:10px;
+  margin:0;
+  color:#fff;
+}
+
+h2{text-align:center}
+
+form{
+  background:#1e293b;
+  padding:15px;
+  border-radius:10px;
+}
+
+input,select{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border:none;
+  border-radius:6px;
+  font-size:16px;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border:none;
+  border-radius:8px;
+  background:#22c55e;
+  color:#fff;
+  font-size:16px;
+  font-weight:bold;
+}
+
+table{
+  width:100%;
+  margin-top:10px;
+  font-size:14px;
+}
+
+td{padding:6px}
+
+table button{background:#ef4444}
 </style>
 </head>
+
 <body>
 
 <h2>⚡ Orçamento JVSN-VALDO</h2>
 
 <form method="post">
+
 <input name="cliente" placeholder="Cliente" required>
 <input name="telefone" placeholder="Telefone">
 <input name="email_cliente" placeholder="Email do cliente">
@@ -170,62 +210,60 @@ td{padding:5px}
 </form>
 
 <script>
-let itens=[];
-let subtotal=0;
+let itens = [];
+let subtotal = 0;
 
 function autoFill(){
  if(!padrao.value) return;
- let p=padrao.value.split("|");
- desc.value=p[0];
- val.value=p[1];
+ let p = padrao.value.split("|");
+ desc.value = p[0];
+ val.value = p[1];
 }
 
 function add(){
- let q=+qtd.value, v=+val.value;
- if(!desc.value||q<=0||v<=0) return;
+ let q = +qtd.value, v = +val.value;
+ if(!desc.value || q<=0 || v<=0) return;
 
- let t=q*v;
+ let t = q*v;
+ itens.push({descricao:desc.value,qtd:q,valor:v,total:t});
 
- let item = {descricao:desc.value,qtd:q,valor:v,total:t};
- itens.push(item);
-
- recalcTabela();
+ renderTabela();
 }
 
-function remover(index){
- itens.splice(index,1);
- recalcTabela();
+function remover(i){
+ itens.splice(i,1);
+ renderTabela();
 }
 
-function recalcTabela(){
+function renderTabela(){
  subtotal = 0;
  tab.innerHTML = "";
 
- itens.forEach((i,index)=>{
-    subtotal += i.total;
+ itens.forEach((item,i)=>{
+   subtotal += item.total;
 
-    let r = tab.insertRow();
-    r.insertCell(0).innerText = i.descricao;
-    r.insertCell(1).innerText = i.qtd;
-    r.insertCell(2).innerText = i.valor.toFixed(2);
-    r.insertCell(3).innerText = i.total.toFixed(2);
+   let r = tab.insertRow();
+   r.insertCell(0).innerText = item.descricao;
+   r.insertCell(1).innerText = item.qtd;
+   r.insertCell(2).innerText = item.valor.toFixed(2);
+   r.insertCell(3).innerText = item.total.toFixed(2);
 
-    let btn = document.createElement("button");
-    btn.innerText = "❌";
-    btn.onclick = ()=> remover(index);
+   let btn = document.createElement("button");
+   btn.innerText = "❌";
+   btn.onclick = ()=> remover(i);
 
-    r.insertCell(4).appendChild(btn);
+   r.insertCell(4).appendChild(btn);
  });
 
  calc();
 }
 
 function calc(){
- let descontoPercent = +desconto.value || 0;
+ let descontoPercent = +document.getElementById("desconto").value || 0;
  let valorDesconto = subtotal * (descontoPercent / 100);
 
- subtotalInput.value = subtotal.toFixed(2);
- totalInput.value = (subtotal - valorDesconto).toFixed(2);
+ document.getElementById("subtotal").value = subtotal.toFixed(2);
+ document.getElementById("total").value = (subtotal - valorDesconto).toFixed(2);
 
  document.getElementById("itens").value = JSON.stringify(itens);
 }
