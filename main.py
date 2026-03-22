@@ -127,13 +127,115 @@ def login():
         if request.form.get("senha") == SENHA:
             session["logado"] = True
             return redirect("/")
+
     return '''
-    <h2>Login</h2>
-    <form method="post">
-    <input type="password" name="senha" placeholder="Senha">
-    <button>Entrar</button>
-    </form>
-    '''
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Login | JVSN-VALDO</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  color:#fff;
+}
+
+/* CARD */
+.login{
+  width:100%;
+  max-width:350px;
+  background:#020617;
+  padding:25px 20px;
+  border-radius:15px;
+  box-shadow:0 15px 40px rgba(0,0,0,.5);
+  text-align:center;
+}
+
+/* LOGO */
+.logo{
+  font-size:24px;
+  font-weight:bold;
+  margin-bottom:5px;
+}
+
+.sub{
+  font-size:13px;
+  color:#94a3b8;
+  margin-bottom:20px;
+}
+
+/* INPUT */
+input{
+  width:100%;
+  padding:14px;
+  margin-bottom:12px;
+  border:none;
+  border-radius:8px;
+  background:#1e293b;
+  color:#fff;
+  font-size:16px;
+}
+
+/* BOTÃO */
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  background:#22c55e;
+  color:#fff;
+  font-size:16px;
+  font-weight:bold;
+}
+
+button:active{
+  transform:scale(.97);
+}
+
+/* FOOTER */
+.footer{
+  margin-top:15px;
+  font-size:12px;
+  color:#64748b;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login">
+
+  <div class="logo">⚡ JVSN-VALDO</div>
+  <div class="sub">Acesso ao sistema de orçamento</div>
+
+  <form method="post">
+    <input type="password" name="senha" placeholder="Digite sua senha" required>
+    <button type="submit">Entrar</button>
+  </form>
+
+  <div class="footer">
+    Uso interno • Segurança ativa
+  </div>
+
+</div>
+
+</body>
+</html>
+'''
+
 
 # ================= APP =================
 @app.route("/", methods=["GET","POST"])
