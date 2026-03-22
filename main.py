@@ -1,7 +1,6 @@
 from flask import Flask, render_template_string, request, send_file, session, redirect
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.colors import HexColor
 from datetime import date
 import os, uuid, json
 
@@ -32,8 +31,10 @@ def gerar_pdf(d, itens):
 
     c.setFont("Helvetica-Bold", 18)
     c.drawString(170, 800, "ORÇAMENTO JVSN-VALDO")
+
     c.setFont("Helvetica", 10)
     c.drawString(170, 782, "Email: valdo.soares@jvsn.com.br")
+    c.drawString(170, 768, "Telefone: (11) 91234-5678")
 
     c.setFont("Helvetica", 11)
     c.drawString(40, 735, f"Cliente: {d['cliente']}")
@@ -60,7 +61,7 @@ def gerar_pdf(d, itens):
     y -= 15
     c.drawString(360, y, f"Subtotal: R$ {d['subtotal']:.2f}")
     y -= 15
-    c.drawString(360, y, f"Desconto: R$ {d['desconto']:.2f}")
+    c.drawString(360, y, f"Desconto: {d['desconto']}%")
     y -= 20
     c.setFont("Helvetica-Bold", 13)
     c.drawString(360, y, f"TOTAL: R$ {d['total']:.2f}")
@@ -86,103 +87,14 @@ def login():
         if request.form.get("senha") == SENHA:
             session["logado"] = True
             return redirect("/")
-    return """
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login | JVSN-VALDO</title>
+    return '''
+    <h2>Login</h2>
+    <form method="post">
+    <input type="password" name="senha">
+    <button>Entrar</button>
+    </form>
+    '''
 
-<style>
-*{
-  box-sizing:border-box;
-  font-family:Arial, Helvetica, sans-serif;
-}
-
-body{
-  min-height:100vh;
-  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:15px;
-}
-
-.login-box{
-  width:100%;
-  max-width:360px;
-  background:#fff;
-  border-radius:10px;
-  padding:25px 20px;
-  box-shadow:0 10px 30px rgba(0,0,0,.25);
-  text-align:center;
-}
-
-.logo{
-  font-size:26px;
-  font-weight:bold;
-  color:#203a43;
-  margin-bottom:5px;
-}
-
-.sub{
-  font-size:14px;
-  color:#555;
-  margin-bottom:20px;
-}
-
-input{
-  width:100%;
-  padding:12px;
-  border-radius:6px;
-  border:1px solid #ccc;
-  margin-bottom:15px;
-  font-size:16px;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  background:#2c5364;
-  color:#fff;
-  border:none;
-  border-radius:6px;
-  font-size:16px;
-  font-weight:bold;
-}
-
-button:active{
-  transform:scale(.98);
-}
-
-.footer{
-  margin-top:15px;
-  font-size:12px;
-  color:#777;
-}
-</style>
-</head>
-
-<body>
-
-<div class="login-box">
-  <div class="logo">⚡ JVSN-VALDO</div>
-  <div class="sub">Orçamentos Elétricos</div>
-
-  <form method="post">
-    <input type="password" name="senha" placeholder="Digite a senha" required>
-    <button type="submit">Entrar</button>
-  </form>
-
-  <div class="footer">
-    Uso interno • Acesso restrito
-  </div>
-</div>
-
-</body>
-</html>    
-"""
 # ================= APP =================
 @app.route("/", methods=["GET","POST"])
 def index():
@@ -190,11 +102,7 @@ def index():
         return redirect("/login")
 
     if request.method == "POST":
-        itens_raw = request.form.get("itens","[]")
-        try:
-            itens = json.loads(itens_raw)
-        except:
-            itens = []
+        itens = json.loads(request.form.get("itens","[]"))
 
         d = {
             "cliente": request.form.get("cliente",""),
@@ -214,13 +122,13 @@ def index():
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width">
 <style>
 body{font-family:Arial;background:#f4f4f4;padding:15px}
 form{background:#fff;padding:15px;border-radius:6px}
 input,select{width:100%;padding:8px;margin:6px 0}
-button{width:100%;padding:12px;margin-top:10px}
+button{width:100%;padding:10px;margin-top:5px}
 table{width:100%;margin-top:10px}
+td{padding:5px}
 </style>
 </head>
 <body>
@@ -248,9 +156,10 @@ table{width:100%;margin-top:10px}
 <table id="tab"></table>
 
 <input type="hidden" name="itens" id="itens">
-<input id="subtotal" name="subtotal" readonly>
-<input id="desconto" name="desconto" value="0" oninput="calc()">
-<input id="total" name="total" readonly>
+
+<input id="subtotal" name="subtotal" readonly placeholder="Subtotal">
+<input id="desconto" name="desconto" value="0" oninput="calc()" placeholder="Desconto (%)">
+<input id="total" name="total" readonly placeholder="Total">
 
 <label><input type="checkbox" name="pagamento" value="Pix"> Pix</label>
 <label><input type="checkbox" name="pagamento" value="Crédito"> Crédito</label>
@@ -261,34 +170,64 @@ table{width:100%;margin-top:10px}
 </form>
 
 <script>
-let itens=[], subtotal=0;
+let itens=[];
+let subtotal=0;
 
 function autoFill(){
  if(!padrao.value) return;
  let p=padrao.value.split("|");
- desc.value=p[0]; val.value=p[1];
+ desc.value=p[0];
+ val.value=p[1];
 }
 
 function add(){
  let q=+qtd.value, v=+val.value;
  if(!desc.value||q<=0||v<=0) return;
+
  let t=q*v;
- itens.push({descricao:desc.value,qtd:q,valor:v,total:t});
- subtotal+=t;
- let r=tab.insertRow();
- r.insertCell(0).innerText=desc.value;
- r.insertCell(1).innerText=q;
- r.insertCell(2).innerText=v.toFixed(2);
- r.insertCell(3).innerText=t.toFixed(2);
+
+ let item = {descricao:desc.value,qtd:q,valor:v,total:t};
+ itens.push(item);
+
+ recalcTabela();
+}
+
+function remover(index){
+ itens.splice(index,1);
+ recalcTabela();
+}
+
+function recalcTabela(){
+ subtotal = 0;
+ tab.innerHTML = "";
+
+ itens.forEach((i,index)=>{
+    subtotal += i.total;
+
+    let r = tab.insertRow();
+    r.insertCell(0).innerText = i.descricao;
+    r.insertCell(1).innerText = i.qtd;
+    r.insertCell(2).innerText = i.valor.toFixed(2);
+    r.insertCell(3).innerText = i.total.toFixed(2);
+
+    let btn = document.createElement("button");
+    btn.innerText = "❌";
+    btn.onclick = ()=> remover(index);
+
+    r.insertCell(4).appendChild(btn);
+ });
+
  calc();
 }
 
 function calc(){
- subtotalInput = document.getElementById("subtotal");
- totalInput = document.getElementById("total");
- subtotalInput.value=subtotal.toFixed(2);
- totalInput.value=(subtotal-(+desconto.value||0)).toFixed(2);
- document.getElementById("itens").value=JSON.stringify(itens);
+ let descontoPercent = +desconto.value || 0;
+ let valorDesconto = subtotal * (descontoPercent / 100);
+
+ subtotalInput.value = subtotal.toFixed(2);
+ totalInput.value = (subtotal - valorDesconto).toFixed(2);
+
+ document.getElementById("itens").value = JSON.stringify(itens);
 }
 </script>
 
@@ -297,4 +236,3 @@ function calc(){
 """, servicos=SERVICOS_PADRAO)
 
 app.run(host="0.0.0.0", port=10000)
-
