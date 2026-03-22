@@ -9,55 +9,13 @@ app = Flask(__name__)
 app.secret_key = "uma_chave_secreta_qualquer"
 
 SENHA = "josevaldo123"
+
 SERVICOS_PADRAO = {
-    "INSTALAÇÃO DE IDR (INTERRUPTOR DIFERENCIAL RESIDUAL)": 150.50,
-    "INSTALAÇÃO DE DPS - DISPOSITIVO DE PROTEÇÃO CONTRA SURTOS": 129.50,
-    "INSTALAÇÃO DE BARRAMENTO PENTE MONOPOLAR NO QDC": 70.00,
-    "INSTALAÇÃO DE BARRAMENTO PENTE BIPOLAR NO QDC": 81.00,
-    "INSTALAÇÃO DE BARRAMENTO PENTE TRIPOLAR NO QDC": 92.00,
-    "INSTALAÇÃO DE BARRAMENTO DE NEUTRO e OU TERRA": 92.00,
+    "INSTALAÇÃO DE IDR": 150.50,
+    "INSTALAÇÃO DE DPS": 129.50,
     "INSTALAÇÃO DE HASTE ATERRAMENTO": 210.50,
-    "INSTALAÇÃO DE CONTATOR E OU RELÉ TÉRMICO": 231.50,
-    "INSTALAÇÃO E MONTAGEM QDC (6 CIRCUITOS + DR + DPS)": 559.50,
-    "INSTALAÇÃO E MONTAGEM QDC (12 CIRCUITOS + DR + DPS)": 833.50,
-    "INSTALAÇÃO E MONTAGEM QDC (18 CIRCUITOS + DR + DPS)": 1038.00,
-    "INSTALAÇÃO E MONTAGEM QDC (24 CIRCUITOS + DR + DPS)": 1387.00,
-    "PASSAGEM DE CABOS ENTRADA MONOFÁSICA (QM PARA QDC)": 215.50,
-    "PASSAGEM DE CABOS ENTRADA BIFÁSICA OU TRIFÁSICA (QM PARA QDC)": 285.50,
-    "ALIMENTAÇÃO PARA MOTORES": 204.50,
-    "CURTO CIRCUITO MONOFÁSICO": 172.50,
-    "CURTO CIRCUITO BIFÁSICO": 204.50,
-    "CURTO CIRCUITO TRIFÁSICO": 237.00,
-    "INSTALAÇÃO DE MEDIDOR (Padrão de entrada - Monofásico 127V ou 220V)": 1494.50,
-    "INSTALAÇÃO DE MEDIDOR (Padrão de entrada - Bifásico 220V)": 1736.50,
-    "INSTALAÇÃO DE MEDIDOR (Padrão de entrada - Trifásico 220V)": 1962.50,
     "INSTALAÇÃO CARREGADOR VEICULAR": 1881.50,
-    "ALIMENTAÇÃO ELÉTRICA PARA AR CONDICIONADO": 124.50,
-    "INSTALAÇÃO DE AR Condicionado SPLIT INVERTER 9000 BTUS": 581.00,
-    "INSTALAÇÃO DE AR Condicionado SPLIT INVERTER 12000 BTUS": 581.00,
-    "INSTALAÇÃO DE AR Condicionado SPLIT INVERTER 18000 BTUS": 694.00,
-    "INSTALAÇÃO DE AR Condicionado SPLIT INVERTER 24000 BTUS": 812.00,
-    "INSTALAÇÃO DE AR Condicionado SPLIT INVERTER 30000 BTUS": 978.50,
-    "INSTALAÇÃO DE AR Condicionado ON OFF convencional 9000 BTUS": 511.00,
-    "INSTALAÇÃO DE AR Condicionado ON OFF convencional 12000 BTUS": 570.50,
-    "INSTALAÇÃO DE AR Condicionado ON OFF convencional 18000 BTUS": 624.00,
-    "INSTALAÇÃO DE AR Condicionado ON OFF convencional 24000 BTUS": 737.00,
-    "INSTALAÇÃO DE AR Condicionado ON OFF convencional 30000 BTUS": 855.00,
-    "LIMPEZA EM TUBULAÇÃO DE AR CONDICIONADO (existente no local)": 70.50,
-    "INSTALAÇÃO DE PAINEL SOLAR (com Gerador Solar de 8kWp)": 9245.50,
-    "ATENDIMENTO TÉCNICO EMERGENCIAL (Final de semana)": 274.50,
-    "ATENDIMENTO TÉCNICO EMERGENCIAL (Durante a semana)": 204.50,
-    "INSTALAÇÃO DE INTERRUPTOR INTELIGENTE": 205.00,
-    "INSTALAÇÃO MINI RELE INTERRUPTOR": 231.00,
-    "INSTALAÇÃO RELE DE IMPULSO": 188.50,
-    "INSTALAÇÃO RELE DIMMER": 231.50,
-    "INSTALAÇÃO E CONFIGURAÇÃO CONTROLE REMOTO UNIVERSAL": 178.00,
-    "INSTALAÇÃO DE TOMADA INTELIGENTE": 108.00,
-    "INSTALAÇÃO MINI RELE CONTROLE DE PERSIANA": 231.50,
-    "INSTALAÇÃO E CONFIGURAÇÃO HUB": 204.50,
-    "INSTALAÇÃO E CONFIGURAÇÃO ROTEADOR": 205.00,
-    "INSTALAÇÃO E CONFIGURAÇÃO FECHADURA INTELIGENTE": 312.00,
-    "INSTALAÇÃO E CONFIGURAÇÃO ASSISTENTE VIRTUAL (ALEXA)": 172.50
+    "INSTALAÇÃO AR SPLIT 12000 BTUS": 581.00
 }
 
 def f(v):
@@ -77,7 +35,7 @@ def gerar_pdf(d, itens):
 
     c.setFont("Helvetica", 10)
     c.drawString(170, 782, "Email: valdo.soares@jvsn.com.br")
-    c.drawString(170, 768, "Telefone: (11) 92173 3556")
+    c.drawString(170, 768, "Telefone: (11) 91234-5678")
 
     c.setFont("Helvetica", 11)
     c.drawString(40, 735, f"Cliente: {d['cliente']}")
@@ -108,6 +66,12 @@ def gerar_pdf(d, itens):
     y -= 20
     c.setFont("Helvetica-Bold", 13)
     c.drawString(360, y, f"TOTAL: R$ {d['total']:.2f}")
+
+    # ================= ASSINATURA =================
+    y -= 60
+    c.line(40, y, 250, y)
+    c.setFont("Helvetica", 10)
+    c.drawString(40, y - 15, d.get("assinatura", "Assinatura do Cliente"))
 
     c.save()
     buffer.seek(0)
@@ -141,6 +105,7 @@ def index():
             "cliente": request.form.get("cliente",""),
             "telefone": request.form.get("telefone",""),
             "email_cliente": request.form.get("email_cliente",""),
+            "assinatura": request.form.get("assinatura",""),
             "subtotal": f(request.form.get("subtotal")),
             "desconto": f(request.form.get("desconto")),
             "total": f(request.form.get("total")),
@@ -163,51 +128,13 @@ def index():
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family:Arial;
-  background:#0f172a;
-  padding:10px;
-  margin:0;
-  color:#fff;
-}
-
+body{font-family:Arial;background:#0f172a;padding:10px;margin:0;color:#fff}
 h2{text-align:center}
-
-form{
-  background:#1e293b;
-  padding:15px;
-  border-radius:10px;
-}
-
-input,select{
-  width:100%;
-  padding:12px;
-  margin:6px 0;
-  border:none;
-  border-radius:6px;
-  font-size:16px;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border:none;
-  border-radius:8px;
-  background:#22c55e;
-  color:#fff;
-  font-size:16px;
-  font-weight:bold;
-}
-
-table{
-  width:100%;
-  margin-top:10px;
-  font-size:14px;
-}
-
+form{background:#1e293b;padding:15px;border-radius:10px}
+input,select{width:100%;padding:12px;margin:6px 0;border:none;border-radius:6px;font-size:16px}
+button{width:100%;padding:12px;margin-top:8px;border:none;border-radius:8px;background:#22c55e;color:#fff;font-size:16px;font-weight:bold}
+table{width:100%;margin-top:10px;font-size:14px}
 td{padding:6px}
-
 table button{background:#ef4444}
 </style>
 </head>
@@ -243,10 +170,13 @@ table button{background:#ef4444}
 <input id="desconto" name="desconto" value="0" oninput="calc()" placeholder="Desconto (%)">
 <input id="total" name="total" readonly placeholder="Total">
 
+<h4>Forma de pagamento</h4>
 <label><input type="checkbox" name="pagamento" value="Pix"> Pix</label>
 <label><input type="checkbox" name="pagamento" value="Crédito"> Crédito</label>
 <label><input type="checkbox" name="pagamento" value="Débito"> Débito</label>
 <label><input type="checkbox" name="pagamento" value="Dinheiro"> Dinheiro</label>
+
+<input name="assinatura" placeholder="Nome para assinatura">
 
 <button>Gerar PDF</button>
 </form>
